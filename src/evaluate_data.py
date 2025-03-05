@@ -2,9 +2,18 @@ import os
 import pdb
 
 import pandas as pd
+from evaluate import load
 from lens import LENS, LENS_SALSA, download_model
 
-from evaluate import load
+
+def convert_string_to_list(string_list):
+    """Convert string representation of list to actual list."""
+    if isinstance(string_list, str):
+        try:
+            return eval(string_list)
+        except:
+            return [string_list]
+    return string_list
 
 
 def calculate_sari(sari, complex_sentences, modified_sentences, reference_sentences_list):
@@ -70,7 +79,7 @@ def calculate_lens_salsa(lens_salsa, complex_sentences, modified_sentences):
 
 
 if __name__ == '__main__':
-    data_folder = '/Users/abhinavkumar/prj/uzh/sentence_simplification/abby37kumar@outlookcom/repo/sentence_simplification/data/minor_effect'
+    data_folder = './../data/minor_effect'
     sari = load("sari")
     bertscore = load("bertscore")
     lens_path = download_model("davidheineman/lens")
@@ -88,7 +97,8 @@ if __name__ == '__main__':
                     modified_sentences = data_df['original']
                 else:
                     modified_sentences = data_df['modified']
-                reference_sentences_list = data_df['references']
+                reference_sentences_list = data_df['references'].apply(
+                    "convert_string_to_list")
                 sari_scores = calculate_sari(
                     sari, complex_sentences, modified_sentences, reference_sentences_list)
                 bertscore_scores = calculate_bertscore(
