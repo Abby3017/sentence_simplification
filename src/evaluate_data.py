@@ -130,4 +130,11 @@ if __name__ == '__main__':
             lens_salsa_scores = calculate_lens_salsa(
                 lens_salsa, complex_sentences, modified_sentences)
             data_df['sari'] = sari_scores
-            # data_df.to_csv(file_path, index=False)
+            data_df['bertscore_precision'] = bertscore_scores['precision_per_example']
+            data_df['bertscore_recall'] = bertscore_scores['recall_per_example']
+            data_df['bertscore_f1'] = bertscore_scores['f1_per_example']
+            data_df['lens'] = lens_scores
+            data_df['lens_salsa'] = lens_salsa_scores
+            save_file_name = f'{file_name.split(".")[0]}_evaluated.csv'
+            save_file_path = f'{dir_path}/{save_file_name}'
+            data_df.to_csv(save_file_path, index=False)
