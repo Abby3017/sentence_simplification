@@ -97,6 +97,8 @@ if __name__ == '__main__':
     lens = LENS(lens_path, rescale=True)
     lens_salsa_path = download_model("davidheineman/lens-salsa")
     lens_salsa = LENS_SALSA(lens_salsa_path)
+    processing_file_names = [
+        'prefix_whitespace_augmented.csv', 'suffix_whitespace_augmented.csv']
 
     all_dirs = []
     for root, dirs, files in os.walk(data_folder):
@@ -111,6 +113,8 @@ if __name__ == '__main__':
 
         # Progress bar for files
         for file_name in tqdm(files, desc=f"Files in {dir_name}"):
+            if file_name not in processing_file_names:
+                continue
             file_path = os.path.join(dir_path, file_name)
             print(f"\n  Processing file: {file_name}")
             data_df = pd.read_csv(file_path)
@@ -137,4 +141,5 @@ if __name__ == '__main__':
             data_df['lens_salsa'] = lens_salsa_scores
             save_file_name = f'{file_name.split(".")[0]}_evaluated.csv'
             save_file_path = f'{dir_path}/{save_file_name}'
+            print(f"Saving evaluated data to {save_file_path}")
             data_df.to_csv(save_file_path, index=False)
