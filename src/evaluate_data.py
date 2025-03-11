@@ -126,7 +126,10 @@ if __name__ == '__main__':
             print(f"\n  Processing file: {file_name}")
             data_df = pd.read_csv(file_path)
             data_df['model'] = dir_name
-            all_df_list[file_index] = pd.concat([current_df, data_df])
+            data_df['references'] = data_df['references'].apply(
+                convert_string_to_list)
+            all_df_list[file_index] = pd.concat(
+                [current_df, data_df]).reset_index(drop=True)
 
     i = 0
     for all_df in all_df_list:
@@ -135,8 +138,7 @@ if __name__ == '__main__':
             modified_sentences = all_df['original']
         else:
             modified_sentences = all_df['modified']
-        reference_sentences_list = all_df['references'].apply(
-            convert_string_to_list)
+        reference_sentences_list = all_df['references']
         print(f"Calculating scores for {processing_file_names[i]}")
         sari_scores = calculate_sari(
             sari, complex_sentences, modified_sentences, reference_sentences_list)
@@ -160,5 +162,5 @@ if __name__ == '__main__':
         save_file_name = f'{current_file_name.split(".")[0]}_evaluated.csv'
         save_file_path = f'{data_folder}/{save_file_name}'
         print(f"Saving evaluated data to {save_file_path}")
-        data_df.to_csv(save_file_path, index=False)
+        all_df.to_csv(save_file_path, index=False)
         i += 1
