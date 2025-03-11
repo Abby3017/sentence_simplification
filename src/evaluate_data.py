@@ -55,7 +55,8 @@ def calculate_bertscore(bertscore, modified_sentences, reference_sentences_list,
         predictions=modified_sentences,
         references=reference_sentences_list,
         model_type=model_name,
-        lang="en"
+        lang="en",
+        batch_size=64
     )
 
     # Calculate average scores
@@ -77,7 +78,7 @@ def calculate_bertscore(bertscore, modified_sentences, reference_sentences_list,
 
 def calculate_lens(lens, complex_sentences, modified_sentences, reference_sentences_list):
     scores = lens.score(complex_sentences, modified_sentences,
-                        reference_sentences_list, batch_size=16, devices=[0])
+                        reference_sentences_list, batch_size=64, devices=[0])
     return scores
 
 
@@ -85,7 +86,7 @@ def calculate_lens_salsa(lens_salsa, complex_sentences, modified_sentences):
     # lens_salsa_path = download_model("davidheineman/lens-salsa")
     # lens_salsa = LENS_SALSA(lens_salsa_path)
     scores, _ = lens_salsa.score(
-        complex_sentences, modified_sentences, batch_size=16, devices=[0])
+        complex_sentences, modified_sentences, batch_size=64, devices=[0])
     return scores
 
 
@@ -98,9 +99,13 @@ if __name__ == '__main__':
     lens_salsa_path = download_model("davidheineman/lens-salsa")
     lens_salsa = LENS_SALSA(lens_salsa_path)
     processing_file_names = [
-        'prefix_whitespace_augmented.csv', 'suffix_whitespace_augmented.csv']
+        'duplicate_ws_2_1_augmented.csv', 'duplicate_ws_2_2_augmented.csv']
 
     all_dirs = []
+    all_df_list = []
+    for i in processing_file_names:
+        all_df_list.append(pd.DataFrame())
+
     for root, dirs, files in os.walk(data_folder):
         all_dirs.extend([os.path.join(root, d) for d in dirs])
 
@@ -115,31 +120,40 @@ if __name__ == '__main__':
         for file_name in tqdm(files, desc=f"Files in {dir_name}"):
             if file_name not in processing_file_names:
                 continue
+            file_index = processing_file_names.index(file_name)
+            current_df = all_df_list[file_index]
             file_path = os.path.join(dir_path, file_name)
             print(f"\n  Processing file: {file_name}")
             data_df = pd.read_csv(file_path)
-            complex_sentences = data_df['complex']
-            if 'original' in data_df.columns:
-                modified_sentences = data_df['original']
-            else:
-                modified_sentences = data_df['modified']
-            reference_sentences_list = data_df['references'].apply(
-                convert_string_to_list)
-            sari_scores = calculate_sari(
-                sari, complex_sentences, modified_sentences, reference_sentences_list)
-            bertscore_scores = calculate_bertscore(
-                bertscore, modified_sentences, reference_sentences_list)
-            lens_scores = calculate_lens(
-                lens, complex_sentences, modified_sentences, reference_sentences_list)
-            lens_salsa_scores = calculate_lens_salsa(
-                lens_salsa, complex_sentences, modified_sentences)
-            data_df['sari'] = sari_scores
-            data_df['bertscore_precision'] = bertscore_scores['precision_per_example']
-            data_df['bertscore_recall'] = bertscore_scores['recall_per_example']
-            data_df['bertscore_f1'] = bertscore_scores['f1_per_example']
-            data_df['lens'] = lens_scores
-            data_df['lens_salsa'] = lens_salsa_scores
-            save_file_name = f'{file_name.split(".")[0]}_evaluated.csv'
-            save_file_path = f'{dir_path}/{save_file_name}'
-            print(f"Saving evaluated data to {save_file_path}")
-            data_df.to_csv(save_file_path, index=False)
+            data_df['model'] = dir_name
+            all_df_list[file_index] = pd.concat([current_df, data_df])
+
+    i = 0
+    for all_df in all_df_list:
+        complex_sentences = all_df['complex']
+        if 'original' in all_df.columns:
+            modified_sentences = all_df['original']
+        else:
+            modified_sentences = all_df['modified']
+        reference_sentences_list = all_df['references'].apply(
+            convert_string_to_list)
+        sari_scores = calculate_sari(
+            sari, complex_sentences, modified_sentences, reference_sentences_list)
+        bertscore_scores = calculate_bertscore(
+            bertscore, modified_sentences, reference_sentences_list)
+        lens_scores = calculate_lens(
+            lens, complex_sentences, modified_sentences, reference_sentences_list)
+        lens_salsa_scores = calculate_lens_salsa(
+            lens_salsa, complex_sentences, modified_sentences)
+        all_df['sari'] = sari_scores
+        all_df['bertscore_precision'] = bertscore_scores['precision_per_example']
+        all_df['bertscore_recall'] = bertscore_scores['recall_per_example']
+        all_df['bertscore_f1'] = bertscore_scores['f1_per_example']
+        all_df['lens'] = lens_scores
+        all_df['lens_salsa'] = lens_salsa_scores
+        current_file_name = processing_file_names[i]
+        save_file_name = f'{current_file_name.split(".")[0]}_evaluated.csv'
+        save_file_path = f'{data_folder}/{save_file_name}'
+        print(f"Saving evaluated data to {save_file_path}")
+        data_df.to_csv(save_file_path, index=False)
+        i += 1
