@@ -1,10 +1,21 @@
+import gc
 import os
 import pdb
 
 import pandas as pd
+import torch
 from evaluate import load
 from lens import LENS, LENS_SALSA, download_model
 from tqdm import tqdm
+
+
+def reset_cuda():
+    """Reset CUDA and clear memory caches"""
+    torch.cuda.empty_cache()
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.reset_max_memory_allocated()
+        torch.cuda.reset_max_memory_cached()
 
 
 def convert_string_to_list(string_list):
@@ -146,12 +157,15 @@ if __name__ == '__main__':
         bertscore_scores = calculate_bertscore(
             bertscore, modified_sentences, reference_sentences_list)
         print("BERTScore scores calculated")
+        reset_cuda()
         lens_scores = calculate_lens(
             lens, complex_sentences, modified_sentences, reference_sentences_list)
         print("LENS scores calculated")
+        reset_cuda()
         lens_salsa_scores = calculate_lens_salsa(
             lens_salsa, complex_sentences, modified_sentences)
         print("LENS-SALSA scores calculated")
+        reset_cuda()
         all_df['sari'] = sari_scores
         all_df['bertscore_precision'] = bertscore_scores['precision_per_example']
         all_df['bertscore_recall'] = bertscore_scores['recall_per_example']
