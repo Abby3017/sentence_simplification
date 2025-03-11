@@ -25,7 +25,7 @@ def calculate_sari(sari, complex_sentences, modified_sentences, reference_senten
 
     individual_sari_scores = []
 
-    for i in range(len(complex_sentences)):
+    for i in tqdm(range(len(complex_sentences)), desc="Calculating individual SARI scores"):
         complex_sent = [complex_sentences[i]]
         modified_sent = [modified_sentences[i]]
         references = [reference_sentences_list[i]]
@@ -137,14 +137,19 @@ if __name__ == '__main__':
             modified_sentences = all_df['modified']
         reference_sentences_list = all_df['references'].apply(
             convert_string_to_list)
+        print(f"Calculating scores for {processing_file_names[i]}")
         sari_scores = calculate_sari(
             sari, complex_sentences, modified_sentences, reference_sentences_list)
+        print("SARI scores calculated")
         bertscore_scores = calculate_bertscore(
             bertscore, modified_sentences, reference_sentences_list)
+        print("BERTScore scores calculated")
         lens_scores = calculate_lens(
             lens, complex_sentences, modified_sentences, reference_sentences_list)
+        print("LENS scores calculated")
         lens_salsa_scores = calculate_lens_salsa(
             lens_salsa, complex_sentences, modified_sentences)
+        print("LENS-SALSA scores calculated")
         all_df['sari'] = sari_scores
         all_df['bertscore_precision'] = bertscore_scores['precision_per_example']
         all_df['bertscore_recall'] = bertscore_scores['recall_per_example']
