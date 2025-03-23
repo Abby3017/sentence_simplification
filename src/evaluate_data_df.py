@@ -109,6 +109,8 @@ if __name__ == '__main__':
     lens = LENS(lens_path, rescale=True)
     lens_salsa_path = download_model("davidheineman/lens-salsa")
     lens_salsa = LENS_SALSA(lens_salsa_path)
+    processing_files = ['duplicate_longest_word_augmented.csv',
+                        'duplicate_period_augmented.csv']
 
     # Get all files in the data folder
     all_files = []
@@ -121,6 +123,8 @@ if __name__ == '__main__':
 
     for file_path in tqdm(all_files, desc="Reading CSV files"):
         file_name = os.path.basename(file_path)
+        if file_name not in processing_files:
+            continue
         print(f"Reading file: {file_name}")
         data_df = pd.read_csv(file_path)
         complex_sentences = data_df['complex']
@@ -128,7 +132,8 @@ if __name__ == '__main__':
             modified_sentences = data_df['original']
         else:
             modified_sentences = data_df['modified']
-        reference_sentences_list = data_df['references']
+        reference_sentences_list = data_df['references'].apply(
+            convert_string_to_list)
         print(f"Calculating scores for {file_name}")
         sari_scores = calculate_sari(
             sari, complex_sentences, modified_sentences, reference_sentences_list)
